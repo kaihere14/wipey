@@ -1,270 +1,144 @@
-# wipey &nbsp;![Crates.io](https://img.shields.io/crates/v/wipey.svg) ![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Build Status](https://img.shields.io/github/actions/workflow/status/kaihere14/wipey/rust.yml?branch=main) ![Docs.rs](https://img.shields.io/docsrs/wipey)
+# wipey [![Crates.io](https://img.shields.io/crates/v/wipey.svg)](https://crates.io/crates/wipey) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/kaihere14/wipey/blob/main/LICENSE) [![Build Status](https://img.shields.io/github/actions/workflow/status/kaihere14/wipey/rust.yml?branch=main)](https://github.com/kaihere14/wipey/actions)
 
-**A tiny, interactive CLI for safely locating and deleting folders that match a given name.**  
-`wipey` walks a directory tree, finds every folder whose name equals the *target* you specify, shows you a human‑readable list (including each folder’s size), lets you pick which ones to delete, and finally removes them – with an optional *dry‑run* mode for safety.
-
----
-
-## Table of Contents
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Configuration & CLI Flags](#configuration--cli-flags)
-- [Usage](#usage)
-  - [Basic Example](#basic-example)
-  - [Dry‑Run Example](#dry-run-example)
-- [Development](#development)
-  - [Running the Project Locally](#running-the-project-locally)
-  - [Testing](#testing)
-  - [Code Style & Formatting](#code-style--formatting)
-- [Troubleshooting & FAQ](#troubleshooting--faq)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License & Credits](#license--credits)
+A **Rust-native CLI tool** for safely locating and deleting folders by exact name. Features an interactive UI, dry-run mode, and human-readable size display.
 
 ---
 
-## Overview
-`wipey` is a **Rust‑native** command‑line utility that helps you clean up unwanted directories (e.g., `node_modules`, `target`, `__pycache__`) across large codebases. It is:
+## Key Features
 
-* **Interactive** – you decide which matches to delete via a fuzzy‑select UI.
-* **Safe** – a `--dry-run` flag shows exactly what would be removed without touching the filesystem.
-* **Fast** – built on `walkdir` for efficient recursive traversal and `clap` for zero‑cost argument parsing.
+- **Interactive Selection**  
+  Choose which folders to delete via a fuzzy-select UI powered by `inquire`.
 
-> **Who should use it?**  
-Developers, DevOps engineers, or anyone who regularly needs to purge repetitive folder structures from many projects.
+- **Safe Deletion**  
+  Use `--dry-run` to preview deletions before executing.
 
----
+- **Efficient Scanning**  
+  Built on `walkdir` for fast recursive directory traversal.
 
-## Features
-| Feature | Description | Status |
-|---------|-------------|--------|
-| Recursive search | Walks the entire directory tree starting at a user‑provided root. | ✅ Stable |
-| Targeted folder matching | Finds directories whose **exact** name matches the supplied target string. | ✅ Stable |
-| Human‑readable size display | Shows each candidate folder’s size in KiB/MiB/GiB. | ✅ Stable |
-| Interactive multi‑select UI | Powered by the `inquire` crate; pick any subset of matches. | ✅ Stable |
-| Dry‑run mode (`-d`/`--dry-run`) | Preview deletions without performing them. | ✅ Stable |
-| Colorful terminal output | Uses standard `println!` with clear formatting for success/failure. | ✅ Stable |
-| Cross‑platform | Works on Windows, macOS, and Linux (any platform supported by Rust). | ✅ Stable |
+- **Cross-Platform**  
+  Works on Windows, macOS, and Linux.
+
+- **Human-Readable Output**  
+  Displays folder sizes in KiB/MiB/GiB for easy decision-making.
 
 ---
 
-## Tech Stack
-| Layer | Technology | Reason |
-|-------|------------|--------|
-| Language | **Rust 2024** | Zero‑cost abstractions, safety, and compiled binaries. |
-| CLI parsing | `clap = "4.6.5"` (with `derive` feature) | Declarative argument definition, automatic help generation. |
-| Interactive prompts | `inquire = "0.9.4"` | Simple, cross‑platform multi‑select UI. |
-| Filesystem traversal | `walkdir = "2"` | Efficient recursive directory walking. |
-| Packaging | Cargo (Rust’s package manager) | Handles building, testing, and publishing to crates.io. |
+## Installation
 
----
-
-## Architecture
-```
-wipey (binary)
-│
-├─ src/main.rs          ← Entry point, CLI handling, core logic
-│   ├─ Args            ← clap‑derived struct for CLI flags
-│   ├─ find_matches()  ← WalkDir recursion, collects matching paths
-│   ├─ folder_size()   ← Recursively sums file sizes in a folder
-│   ├─ human_size()    ← Pretty‑prints bytes → KiB/MiB/GiB
-│   └─ main()          ← Orchestrates UI, dry‑run, and deletion
-│
-└─ Cargo.toml           ← Dependency & metadata definition
-```
-
-* **`Args`** – Holds `root`, `target`, and `dry_run` flags parsed by `clap`.  
-* **`find_matches`** – Walks the tree, stops descending into a matched directory (`it.skip_current_dir()`) to avoid double‑counting.  
-* **`FolderEntry`** – Simple struct used for displaying path + size in the selection UI.  
-* **Deletion flow** – After the user selects entries, either a dry‑run summary is printed or `std::fs::remove_dir_all` is called for each path.
-
----
-
-## Getting Started
-
-### Prerequisites
-| Requirement | Minimum Version |
-|-------------|-----------------|
-| Rust toolchain (`rustc`, `cargo`) | 1.78 (edition 2024) |
-| Operating System | Windows 10 / macOS 12 / Linux kernel 5.4+ |
-| Optional: `git` (for cloning) | any |
-
-> **Tip:** Install Rust via [rustup.rs](https://rustup.rs) – it provides the latest stable compiler and Cargo.
-
-### Installation
-
-#### 1️⃣ Install from crates.io (recommended)
+### From crates.io (Recommended)
 ```bash
 cargo install wipey
-# Binary will be placed in $HOME/.cargo/bin (add to $PATH if needed)
 ```
 
-#### 2️⃣ Build from source (for the latest commit)
+### From Source
 ```bash
 git clone https://github.com/kaihere14/wipey.git
 cd wipey
 cargo build --release
-# The binary is at ./target/release/wipey
 ```
 
-#### 3️⃣ Verify installation
+### Verify Installation
 ```bash
 wipey --version
-# Expected output: wipey 0.1.0
 ```
-
-### Configuration & CLI Flags
-| Flag | Short | Long | Description | Example |
-|------|-------|------|-------------|---------|
-| `root` | `-r` | `--root` | Path to the directory where the search starts. **Required**. | `-r ./projects` |
-| `target` | `-t` | `--target` | Exact folder name to look for (e.g., `node_modules`). **Required**. | `-t node_modules` |
-| `dry_run` | `-d` | `--dry-run` | Show what would be deleted without actually removing anything. | `-d` |
 
 ---
 
 ## Usage
 
-### Basic Example
-Delete all `target` folders inside a Rust workspace, confirming each deletion interactively:
+```bash
+wipey -r <ROOT_DIR> -t <FOLDER_NAME> [OPTIONS]
+```
 
+### Example: Delete `target` Folders
 ```bash
 wipey -r . -t target
 ```
 
-*The program will:*
-1. Scan the current directory (`.`) for folders named `target`.
-2. Display each match with its size.
-3. Prompt you to select which ones to delete.
-4. Remove the selected folders.
-
-### Dry‑Run Example
-Preview deletions without touching the filesystem:
-
+### Dry-Run Preview
 ```bash
-wipey -r /home/user/projects -t __pycache__ -d
+wipey -r /path/to/projects -t __pycache__ -d
 ```
 
-Output (example):
+### CLI Options
+| Flag | Description |
+|------|-------------|
+| `-r, --root` | Root directory to scan (required) |
+| `-t, --target` | Folder name to match (required) |
+| `-d, --dry-run` | Preview deletions without modifying files |
 
-```
-[DRY RUN] The following would be deleted:
-  /home/user/projects/foo/__pycache__  (12.3 KiB)
-  /home/user/projects/bar/__pycache__  (8.7 KiB)
-```
+---
 
-### Full Command Reference
-```text
-wipey 0.1.0
-A tiny interactive CLI for locating & deleting folders by name.
+## Tech Stack
 
-USAGE:
-    wipey [OPTIONS] --root <ROOT> --target <TARGET>
-
-OPTIONS:
-    -d, --dry-run          Perform a dry run (no deletions)
-    -h, --help             Print help information
-    -r, --root <ROOT>      Root directory to start the search
-    -t, --target <TARGET>  Folder name to match
-    -V, --version          Print version information
-```
+- **Language**: Rust 2024  
+- **CLI Parsing**: `clap` for argument handling  
+- **Interactive UI**: `inquire` for cross-platform prompts  
+- **Filesystem**: `walkdir` for efficient directory traversal  
+- **Build Tool**: Cargo for dependency management and packaging  
 
 ---
 
 ## Development
 
-### Running the Project Locally
+### Run Locally
 ```bash
-# Clone the repo (if you haven't already)
-git clone https://github.com/kaihere14/wipey.git
-cd wipey
-
-# Run with Cargo (uses the debug profile)
 cargo run -- -r ./test_dir -t node_modules
 ```
 
 ### Testing
-The current codebase does not include automated tests, but you can add unit tests for `folder_size` and `human_size` in `src/main.rs` or a dedicated `tests/` module. Run tests with:
-
 ```bash
 cargo test
 ```
 
-### Code Style & Formatting
-The project follows the default Rust style enforced by `rustfmt` and `clippy`.
-
+### Code Style
 ```bash
-cargo fmt        # Auto‑format source files
-cargo clippy     # Lint for common mistakes
+cargo fmt    # Format code
+cargo clippy # Lint for issues
 ```
 
 ---
 
-## Troubleshooting & FAQ
+## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| **`cargo install wipey` fails with “cannot find crate `wipey`”** | Ensure you are using a recent stable Rust (≥ 1.78) and that your internet connection can reach crates.io. |
-| **No folders are listed even though they exist** | The search is *exact*; ensure the `target` argument matches the folder name case‑sensitively. |
-| **Permission denied when deleting** | Run the command with sufficient privileges (e.g., `sudo` on Linux/macOS) or choose a different root that you own. |
-| **The UI hangs or crashes** | `inquire` requires a TTY. Make sure you are running the binary in an interactive terminal, not piping output to a file. |
-| **I want to match multiple folder names** | Currently only a single target is supported. You can run `wipey` multiple times or extend the code (see *Contributing*). |
-
-If you encounter other issues, feel free to open an **Issue** on GitHub with a minimal reproducible example.
+| Issue | Solution |
+|-------|----------|
+| `cargo install` fails | Ensure Rust ≥ 1.78 and internet access to crates.io |
+| No folders found | Check case sensitivity in folder name matching |
+| Permission denied | Use elevated privileges (`sudo`) or adjust ownership |
+| UI crashes | Run in an interactive terminal (not piped output) |
 
 ---
 
 ## Roadmap
-- [ ] Support glob patterns for `target` (e.g., `*cache*`).  
-- [ ] Add a `--json` flag to output matches in machine‑readable format.  
-- [ ] Implement a `--force` flag to skip the interactive prompt.  
-- [ ] Provide a `--max-depth` option to limit recursion depth.  
-- [ ] Add integration tests covering the full deletion flow.
+
+- [ ] Support glob patterns for folder names  
+- [ ] Add `--json` output format  
+- [ ] Implement `--force` flag to skip prompts  
+- [ ] Add `--max-depth` for recursion limits  
+- [ ] Expand test coverage with integration tests  
 
 ---
 
-## Contributing
-Contributions are welcome! Follow these steps:
+## License
 
-1. **Fork** the repository and clone your fork.
-2. **Create a feature branch**: `git checkout -b feat/your-feature`.
-3. **Make your changes** – keep code style consistent (`cargo fmt`, `cargo clippy`).
-4. **Add tests** for new functionality (if applicable).
-5. **Run the full test suite**: `cargo test`.
-6. **Commit** with a clear message and push to your fork.
-7. **Open a Pull Request** targeting `main`.  
-   *Please reference any related issue numbers in the PR description.*
-
-### Development Workflow
-```bash
-# Keep your fork up‑to‑date
-git remote add upstream https://github.com/kaihere14/wipey.git
-git fetch upstream
-git rebase upstream/main
-```
-
-### Code Review Guidelines
-- Ensure the code compiles on the stable channel (`cargo build --release`).  
-- No new warnings (`cargo clippy -- -D warnings`).  
-- Keep the public API minimal; expose only what the binary needs.  
+MIT License – see [LICENSE](LICENSE) file.
 
 ---
 
-## License & Credits
+## Acknowledgments
 
-**License:** MIT License (see `LICENSE` file).  
-You are free to use, modify, and distribute this software under the terms of the MIT license.
+- [`clap`](https://crates.io/crates/clap) for CLI parsing  
+- [`inquire`](https://crates.io/crates/inquire) for interactive prompts  
+- [`walkdir`](https://crates.io/crates/walkdir) for directory traversal  
 
-### Acknowledgments
-- **`clap`** – for effortless CLI parsing.  
-- **`inquire`** – for the beautiful interactive prompts.  
-- **`walkdir`** – for fast, reliable directory traversal.  
+---
 
-### Contributors
-- **kaihere14** – original author & maintainer.  
+## Contribute
 
-*If you’d like to be listed here, feel free to submit a PR adding your name.*
+1. Fork the repo and create a feature branch  
+2. Follow Rust formatting and linting standards  
+3. Add tests for new features  
+4. Submit a PR targeting `main`  
+
+See [CONTRIBUTING.md](https://github.com/kaihere14/wipey/blob/main/CONTRIBUTING.md) for details.
