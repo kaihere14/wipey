@@ -1,3 +1,4 @@
+
 # wipey
 
 [![release](https://img.shields.io/github/actions/workflow/status/kaihere14/wipey/release.yml?label=release)](https://github.com/kaihere14/wipey/actions/workflows/release.yml)
@@ -24,35 +25,32 @@ Nothing is deleted unless you tick it.
 
 ## Install
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/kaihere14/wipey/main/install.sh | sh
-```
+sh
+curl -fsSL https://raw.githubusercontent.com/kaihere13/wipey/main/install.sh | sh
 
-No Rust toolchain required — this downloads a prebuilt binary for your platform.
-It installs to `/usr/local/bin` when that's writable, otherwise `~/.local/bin`.
+
+The script downloads a pre‑built binary for your platform, verifies its SHA‑256 checksum against the values published in the GitHub release, and installs it to a writable location (`/usr/local/bin` by default, falling back to `~/.local/bin`). No Rust toolchain is required.
 
 <details>
 <summary>Other ways to install</summary>
 
-**Pin a version, or choose where it lands:**
+**Pin a version or choose the install directory:**
 
-```sh
+sh
 WIPEY_VERSION=v0.1.0 WIPEY_INSTALL_DIR=~/bin \
-  curl -fsSL https://raw.githubusercontent.com/kaihere14/wipey/main/install.sh | sh
-```
+  curl -fsSL https://raw.githubusercontent.com/kaihere13/wipey/main/install.sh | sh
 
-**With Cargo**, building from source (needs Rust 1.85 or newer for edition 2024):
 
-```sh
-cargo install --git https://github.com/kaihere14/wipey
-```
+**With Cargo** – build from source (requires Rust 1.85+ for the 2024 edition):
 
-**By hand** — grab the archive for your platform from the
-[releases page](https://github.com/kaihere14/wipey/releases), extract it, and
-move `wipey` somewhere on your `PATH`.
+sh
+cargo install --git https://github.com/kaihere13/wipey
 
-**Windows** — download the `.zip` from releases. The shell installer is
-Unix-only.
+
+**By hand** – download the archive for your platform from the
+[releases page](https://github.com/kaihere13/wipey/releases), verify the checksum listed in `SHA256SUMS`, extract it, and move the `wipey` executable into a directory on your `PATH`.
+
+**Windows** – download the `.zip` from the releases page. The shell installer is Unix‑only; Windows users can extract the binary manually or use the Cargo method.
 
 </details>
 
@@ -181,16 +179,16 @@ natural place to start if you'd like to add some.
 
 ## Releasing
 
-Push a version tag. CI builds all five targets on native runners and opens a
-**draft** release with binaries and checksums attached; review it on GitHub,
-then publish.
+Create a new version tag and push it. The GitHub Actions workflow builds all five targets on their native runners, generates SHA‑256 checksums for the artifacts, and opens a **draft** release with the binaries and a `SHA256SUMS` file attached. Review the draft on GitHub, then publish it.
 
-```sh
+sh
 git tag v0.1.0
 git push origin v0.1.0
-```
 
-See [`.github/workflows/release.yml`](.github/workflows/release.yml).
+
+You can also trigger the workflow manually via the **Run workflow** button in the Actions tab, providing an existing tag (e.g., `v0.1.0`). Re‑running the workflow for an existing tag replaces the assets instead of failing.
+
+See the full workflow definition in [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 ## Roadmap
 
