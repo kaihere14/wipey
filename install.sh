@@ -55,7 +55,9 @@ target="${cpu}-${platform}"
 version="${WIPEY_VERSION:-}"
 if [ -z "$version" ]; then
     info "looking up latest release"
-    version="$(fetch "https://api.github.com/repos/$REPO/releases/latest" \
+    # 2>/dev/null: a repo with no published release 404s here, and the raw
+    # curl/wget error is noise next to the explanation below.
+    version="$(fetch "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null \
         | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n1)"
     [ -n "$version" ] || die "could not determine the latest version — is a release published yet? (draft releases don't count)"
 fi
