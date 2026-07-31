@@ -1,0 +1,122 @@
+name: release
+
+# Push a version tag and this builds every platform on its own native runner,
+# then opens a DRAFT release with the binaries attached. Review it on GitHub
+# and hit publish when it looks right.
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build a release for (e.g. v0.1.0)'
+        required: true
+
+env:
+  BIN: wipey
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-13
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            apt: musl-tools
+          # Free arm64 Linux runners are public-repo only. If wipey ever goes
+          # private, swap this to ubuntu-latest + cross-compilation.
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-24.04-arm
+            apt: musl-tools
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            ext: .exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build deps
+        if: matrix.apt != ''
+        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.apt }}
+
+      - name: Add rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      # One bash step for all platforms — Windows runners ship git-bash.
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ inputs.tag || github.ref_name }}"
+          stage="${BIN}-${version}-${{ matrix.target }}"
+
+          mkdir -p "$stage"
+          cp "target/${{ matrix.target }}/release/${BIN}${{ matrix.ext }}" "$stage/"
+          cp README.md "$stage/" 2>/dev/null || true
+
+          if [[ "${{ matrix.target }}" == *windows* ]]; then
+            7z a "${stage}.zip" "$stage" > /dev/null
+          else
+            tar -czf "${stage}.tar.gz" "$stage"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: |
+            *.tar.gz
+            *.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          # Build the list first so SHA256SUMS never hashes itself.
+          sha256sum ./*.tar.gz ./*.zip > ../SHA256SUMS
+          mv ../SHA256SUMS .
+          cat SHA256SUMS
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="${{ inputs.tag || github.ref_name }}"
+
+          # Re-running the workflow for an existing tag replaces the assets
+          # rather than erroring out.
+          if gh release view "$version" >/dev/null 2>&1; then
+            gh release upload "$version" dist/* --clobber
+          else
+            gh release create "$version" dist/* \
+              --draft \
+              --title "wipey $version" \
+              --generate-notes
+          fi
