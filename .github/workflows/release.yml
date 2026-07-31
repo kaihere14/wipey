@@ -28,8 +28,11 @@ jobs:
         include:
           - target: aarch64-apple-darwin
             os: macos-latest
+          # Built on an Apple Silicon runner: Apple's toolchain cross-compiles
+          # between macOS architectures natively, and the Intel runner labels
+          # (macos-13) have been retired.
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-latest
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             apt: musl-tools
